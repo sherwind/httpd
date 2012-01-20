@@ -280,11 +280,28 @@ int ap_proxy_http_handler(request_rec *r, cache_req *c, char *url,
     ap_bvputs(f, r->method, " ", proxyhost ? url : urlptr, " HTTP/1.1" CRLF,
               NULL);
     /* Send Host: now, adding it to req_hdrs wouldn't be much better */
-    if (destportstr != NULL && destport != DEFAULT_HTTP_PORT)
-        ap_bvputs(f, "Host: ", desthost, ":", destportstr, CRLF, NULL);
-    else
-        ap_bvputs(f, "Host: ", desthost, CRLF, NULL);
-
+    if ( conf->preserve_host == 0 ) {
+        if (destportstr != NULL && destport != DEFAULT_HTTP_PORT)
+            ap_bvputs(f, "Host: ", desthost, ":", destportstr, CRLF, NULL);
+        else
+            ap_bvputs(f, "Host: ", desthost, CRLF, NULL);
+    } 
+    else {
+        /* don't want to use r->hostname, as the incoming header might have a 
+         * port attached 
+         */
+        const char* hostname = ap_table_get(r->headers_in,"Host");        
+        if (!hostname) {
+            hostname =  r->server->server_hostname;
+            ap_log_rerror(APLOG_MARK, APLOG_WARNING, r,
+                          "proxy: no HTTP 0.9 request (with no host line) "
+                          "on incoming request and preserve host set "
+                          "forcing hostname to be %s for uri %s", 
+                          hostname, 
+                          r->uri );
+        }
+        ap_bvputs(f, "Host: ", hostname, CRLF, NULL);
+    }
     if (conf->viaopt == via_block) {
         /* Block all outgoing Via: headers */
         ap_table_unset(req_hdrs, "Via");

@@ -432,6 +432,8 @@ static void *
     ps->recv_buffer_size_set = 0;
     ps->io_buffer_size = IOBUFSIZE;
     ps->io_buffer_size_set = 0;
+    ps->preserve_host_set = 0;
+    ps->preserve_host = 0;    
 
     ps->cache.root = NULL;
     ps->cache.space = DEFAULT_CACHE_SPACE;
@@ -476,6 +478,7 @@ static void *
     ps->req = (overrides->req_set == 0) ? base->req : overrides->req;
     ps->recv_buffer_size = (overrides->recv_buffer_size_set == 0) ? base->recv_buffer_size : overrides->recv_buffer_size;
     ps->io_buffer_size = (overrides->io_buffer_size_set == 0) ? base->io_buffer_size : overrides->io_buffer_size;
+    ps->preserve_host = (overrides->preserve_host_set == 0) ? base->preserve_host : overrides->preserve_host;
 
     ps->cache.root = (overrides->cache.root == NULL) ? base->cache.root : overrides->cache.root;
     ps->cache.space = (overrides->cache.space_set == 0) ? base->cache.space : overrides->cache.space;
@@ -692,6 +695,16 @@ static const char *
     return NULL;
 }
 
+static const char *
+    set_preserve_host(cmd_parms *parms, void *dummy, int flag)
+{
+    proxy_server_conf *psf =
+    ap_get_module_config(parms->server->module_config, &proxy_module);
+
+    psf->preserve_host = flag;
+    psf->preserve_host_set = 1;
+    return NULL;
+}
 
 static const char *
      set_cache_size(cmd_parms *parms, char *struct_ptr, char *arg)
@@ -961,6 +974,8 @@ static const command_rec proxy_cmds[] =
     "Force a http cache completion after this percentage is loaded"},
     {"ProxyVia", set_via_opt, NULL, RSRC_CONF, TAKE1,
     "Configure Via: proxy header header to one of: on | off | block | full"},
+    {"ProxyPreserveHost", set_preserve_host, NULL, RSRC_CONF, FLAG,
+     "on if we should preserve host header while proxying"},
     {NULL}
 };
 
